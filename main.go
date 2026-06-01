@@ -19,7 +19,9 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"src/internals"
@@ -139,25 +141,26 @@ func main() {
 	// Start web server in background
 	go internals.StartWebServer(cfg, db)
 	go func() {
-		// loop http get request url "https://cloudflare-log-email.onrender.com/healthz" every 5 minutes to keep the connection alive
-		
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				resp, err := http.Get("https://cloudflare-log-email.onrender.com/healthz")
-				if err != nil {
-					log.Printf("[healthz] ERROR: %v", err)
-					continue
-				}
-				resp.Body.Close()
-				log.Printf("[healthz] pinged successfully")
+
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+		}
+
+		for range ticker.C {
+			resp, err := client.Get("https://cloudflare-log-email.onrender.com/healthz")
+			if err != nil {
+				log.Printf("[healthz] ERROR: %v", err)
+				continue
 			}
+
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+
+			log.Printf("[healthz] pinged successfully")
 		}
 	}()
-		 
-	}
 
 	// Initial poll immediately
 	poll(cfg, db, seen)
