@@ -23,6 +23,9 @@ func StartWebServer(cfg Config, db *DB) {
 	r.GET("/login", loginHandler(cfg, sessions, rl))
 	r.POST("/login", loginHandler(cfg, sessions, rl))
 	r.GET("/logout", logoutHandler(sessions))
+	r.GET("/healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK c2F1cmF2LnJhai5hc2grbG9nY2xvdWRAZ21haWwuY29tCg==")
+	})
 
 	// Protected routes
 	auth := r.Group("/", requireAuth(sessions))
